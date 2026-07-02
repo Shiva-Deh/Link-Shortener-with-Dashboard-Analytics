@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Link Shortener</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 720px; margin: 40px auto; padding: 0 16px; color: #222; }
+    h1 { font-size: 1.4rem; }
+    form { display: flex; gap: 8px; margin-bottom: 24px; }
+    input { flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+    button { padding: 8px 14px; border: 0; background: #2b6cb0; color: #fff; border-radius: 4px; cursor: pointer; }
+    button:hover { background: #2557a0; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 8px; border-bottom: 1px solid #eee; font-size: 0.9rem; }
+    td a { color: #2b6cb0; }
+    .msg { color: #c0392b; margin-bottom: 16px; min-height: 1em; }
+    .clicks { text-align: right; }
+  </style>
+</head>
+<body>
+  <h1>Link Shortener</h1>
+
+  <form id="form">
+    <input id="url" type="text" placeholder="https://example.com/long/link" autocomplete="off">
+    <button type="submit">Shorten</button>
+  </form>
+  <div class="msg" id="msg"></div>
+
+  <table>
+    <thead>
+      <tr><th>Short</th><th>Original</th><th class="clicks">Clicks</th></tr>
+    </thead>
+    <tbody id="rows"></tbody>
+  </table>
+
+  <script>
+    const form = document.getElementById('form');
+    const msg = document.getElementById('msg');
+    const rows = document.getElementById('rows');
+
+    async function load() {
+      const res = await fetch('/api/stats');
+      const links = await res.json();
+      rows.innerHTML = links.map(l => {
+        const short = location.origin + '/' + l.code;
+        return `<tr>
+          <td><a href="${short}" target="_blank">/${l.code}</a></td>
+          <td>${l.url}</td>
+          <td class="clicks">${l.clicks}</td>
+        </tr>`;
+      }).join('');
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      msg.textContent = '';
+      const url = document.getElementById('url').value.trim();
+
+      const res = await fetch('/api/shorten', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url })
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        msg.textContent = data.error;
+        return;
+      }
+      form.reset();
+      load();
+    });
+
+    load();
+  </script>
+</body>
+</html>
